@@ -1,0 +1,13 @@
+name = "cf-proxy-panel"
+main = "index.js"
+compatibility_date = "2023-01-01"
+
+[vars]
+AUTH_TOKEN = "change-me"
+
+[assets]
+directory = "public"
+binding = "ASSETS"
+
+[[kv_namespaces]]
+binding = "PROXY_STORE"
