@@ -218,9 +218,138 @@ export function getClashRules(mode = 'balanced') {
   return ROUTING_RULES[mode] || ROUTING_RULES.balanced;
 }
 
-export function buildClashConfig(proxies, settings = {}) {
-  const remoteRuleUrl = String(settings.remoteRuleUrl || '').trim();
-  const remoteRuleBehavior = settings.remoteRuleBehavior || 'classical';
+function providerName(index) {
+  return `remote_rules_${index + 1}`;
+}
+
+function policyForGroup(groupName) {
+  if (/拦截|净化|reject/i.test(groupName)) {
+    return 'REJECT';
+  }
+
+  if (/直连|direct/i.test(groupName)) {
+    return 'DIRECT';
+  }
+
+  return 'Proxy';
+}
+
+function parseInlineRule(groupName, rawRule) {
+  const policy = policyForGroup(groupName);
+  const rule = rawRule.replace(/^\[\]/, '').trim();
+
+  if (/^FINAL$/i.test(rule)) {
+    return policy === 'DIRECT' ? 'MATCH,DIRECT' : 'MATCH,Proxy';
+  }
+
+  const parts = rule.split(',').map((part) => part.trim()).filter(Boolean);
+  if (parts.at(-1) === 'no-resolve') {
+    return `${parts.slice(0, -1).join(',')},${policy},no-resolve`;
+  }
+
+  return `${rule},${policy}`;
+}
+
+async function fetchRemoteText(url) {
+  const response = await fetch(url, {
+    headers: { 'User-Agent': 'cf-proxy-panel' }
+  });
+
+  if (!response.ok) {
+    throw new Error(`Failed to fetch remote rules: ${response.status}`);
+  }
+
+  return response.text();
+}
+
+function parseAcl4ssrConfig(text) {
+  const ruleProviders = {};
+  const rules = [];
+  let providerIndex = 0;
+
+  for (const line of text.split('\n')) {
+    const trimmed = line.trim();
+    if (!trimmed || trimmed.startsWith(';') || !trimmed.startsWith('ruleset=')) {
+      continue;
+    }
+
+    const value = trimmed.slice('ruleset='.length);
+    const commaIndex = value.indexOf(',');
+    if (commaIndex < 0) {
+      continue;
+    }
+
+    const groupName = value.slice(0, commaIndex).trim();
+    const target = value.slice(commaIndex + 1).trim();
+
+    if (target.startsWith('[]')) {
+      rules.push(parseInlineRule(groupName, target));
+      continue;
+    }
+
+    if (/^https?:\/\//i.test(target)) {
+      const [ruleUrl] = target.split(',');
+      const name = providerName(providerIndex);
+      providerIndex += 1;
+      ruleProviders[name] = {
+        type: 'http',
+        behavior: 'classical',
+        url: ruleUrl.trim(),
+        path: `./ruleset/${name}.yaml`,
+        interval: 86400
+      };
+      rules.push(`RULE-SET,${name},${policyForGroup(groupName)}`);
+    }
+  }
+
+  return { ruleProviders, rules };
+}
+
+async function buildRemoteRules(remoteRuleUrl) {
+  if (!remoteRuleUrl) {
+    return { rules: getClashRules('balanced') };
+  }
+
+  if (/\.ini($|\?)/i.test(remoteRuleUrl)) {
+    const parsed = parseAcl4ssrConfig(await fetchRemoteText(remoteRuleUrl));
+    if (parsed.rules.length > 0) {
+      return parsed;
+    }
+  }
+
+  return {
+    ruleProviders: {
+      remote_rules: {
+        type: 'http',
+        behavior: 'classical',
+        url: remoteRuleUrl,
+        path: './ruleset/remote_rules.yaml',
+        interval: 86400
+      }
+    },
+    rules: [
+      'DOMAIN-SUFFIX,local,DIRECT',
+      'IP-CIDR,127.0.0.0/8,DIRECT',
+      'IP-CIDR,10.0.0.0/8,DIRECT',
+      'IP-CIDR,172.16.0.0/12,DIRECT',
+      'IP-CIDR,192.168.0.0/16,DIRECT',
+      'RULE-SET,remote_rules,Proxy',
+      'GEOIP,CN,DIRECT',
+      'MATCH,Proxy'
+    ]
+  };
+}
+
+export async function resolveClashRules(settings = {}) {
+  try {
+    return await buildRemoteRules(String(settings.remoteRuleUrl || '').trim());
+  } catch (error) {
+    console.error('Failed to load remote rules:', error);
+    return { rules: getClashRules('balanced') };
+  }
+}
+
+export function buildClashConfig(proxies, routing = {}) {
   const config = {
     port: 7890,
     'socks-port': 7891,
@@ -236,30 +365,11 @@ export function buildClashConfig(proxies, settings = {}) {
         proxies: proxies.map((proxy) => proxy.name)
       }
     ],
-    rules: remoteRuleUrl
-      ? [
-          'DOMAIN-SUFFIX,local,DIRECT',
-          'IP-CIDR,127.0.0.0/8,DIRECT',
-          'IP-CIDR,10.0.0.0/8,DIRECT',
-          'IP-CIDR,172.16.0.0/12,DIRECT',
-          'IP-CIDR,192.168.0.0/16,DIRECT',
-          'RULE-SET,remote_rules,Proxy',
-          'GEOIP,CN,DIRECT',
-          'MATCH,Proxy'
-        ]
-      : getClashRules('balanced')
+    rules: routing.rules || getClashRules('balanced')
   };
 
-  if (remoteRuleUrl) {
-    config['rule-providers'] = {
-      remote_rules: {
-        type: 'http',
-        behavior: remoteRuleBehavior,
-        url: remoteRuleUrl,
-        path: './ruleset/remote_rules.yaml',
-        interval: 86400
-      }
-    };
+  if (routing.ruleProviders && Object.keys(routing.ruleProviders).length > 0) {
+    config['rule-providers'] = routing.ruleProviders;
   }
 
   return config;

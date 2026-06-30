@@ -1,21 +1,15 @@
 import { getCorsHeaders, isAuthorized, unauthorizedResponse } from './auth.js';
 
 export const SETTINGS_KEY = '__cf_proxy_panel_settings';
+export const DEFAULT_REMOTE_RULE_URL = 'https://raw.githubusercontent.com/ACL4SSR/ACL4SSR/master/Clash/config/ACL4SSR_Online.ini';
 
 export const DEFAULT_SETTINGS = {
-  remoteRuleUrl: '',
-  remoteRuleBehavior: 'classical'
+  remoteRuleUrl: DEFAULT_REMOTE_RULE_URL
 };
 
 export function normalizeSettings(settings = {}) {
-  const remoteRuleUrl = String(settings.remoteRuleUrl || '').trim();
-  const remoteRuleBehavior = ['classical', 'domain', 'ipcidr'].includes(settings.remoteRuleBehavior)
-    ? settings.remoteRuleBehavior
-    : DEFAULT_SETTINGS.remoteRuleBehavior;
-
   return {
-    remoteRuleUrl,
-    remoteRuleBehavior
+    remoteRuleUrl: String(settings.remoteRuleUrl || DEFAULT_SETTINGS.remoteRuleUrl).trim()
   };
 }
 

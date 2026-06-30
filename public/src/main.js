@@ -19,12 +19,6 @@ const app = createApp({
     const error = ref('');
     const importFileInput = ref(null);
 
-    const behaviorOptions = [
-      { value: 'classical', label: 'Classical' },
-      { value: 'domain', label: 'Domain' },
-      { value: 'ipcidr', label: 'IP CIDR' }
-    ];
-
     const enabledCount = computed(() => profiles.value.filter((profile) => profile.enabled).length);
     const canAdd = computed(() => draftAlias.value.trim() && draftUrl.value.trim());
     const installCommand = computed(() => {
@@ -262,7 +256,6 @@ const app = createApp({
       draftUrl,
       exportTarget,
       settings,
-      behaviorOptions,
       loading,
       savingId,
       notice,

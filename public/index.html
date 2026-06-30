@@ -34,7 +34,7 @@
       </section>
 
       <template v-else>
-        <section class="grid gap-4 xl:grid-cols-[minmax(0,1fr)_360px]">
+        <section class="grid gap-4 xl:grid-cols-[minmax(0,1fr)_320px_420px]">
           <div class="rounded-lg bg-white p-4 shadow-sm ring-1 ring-zinc-200">
             <h2 class="text-base font-semibold text-zinc-950">添加订阅</h2>
             <div class="mt-4 grid gap-3 md:grid-cols-[220px_minmax(0,1fr)_auto]">
@@ -52,34 +52,32 @@
             </div>
             <button @click="copyAllLinks" class="mt-3 w-full rounded-md bg-emerald-600 px-4 py-2.5 text-sm font-semibold text-white hover:bg-emerald-700">复制合并订阅</button>
           </div>
-        </section>
-
-        <section class="grid gap-4 xl:grid-cols-[minmax(0,1fr)_360px]">
-          <div class="rounded-lg bg-white p-4 shadow-sm ring-1 ring-zinc-200">
-            <div class="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
-              <div>
-                <h2 class="text-base font-semibold text-zinc-950">Reality 一键安装</h2>
-                <p class="mt-1 text-sm text-zinc-600">命令已自动填入当前 Web 地址和访问令牌，节点名称默认使用服务器 hostname，安装完成后自动推送到面板。</p>
-              </div>
-              <button @click="copyInstallCommand" class="min-h-10 rounded-md bg-zinc-950 px-4 text-sm font-semibold text-white hover:bg-zinc-800">复制命令</button>
-            </div>
-            <pre class="mt-4 max-h-32 overflow-auto rounded-md bg-zinc-950 p-4 text-sm leading-6 text-zinc-100"><code>{{ installCommand }}</code></pre>
-          </div>
 
           <div class="rounded-lg bg-white p-4 shadow-sm ring-1 ring-zinc-200">
             <h2 class="text-base font-semibold text-zinc-950">系统设置</h2>
             <label class="mt-4 block text-xs font-medium text-zinc-500">远程分流规则链接</label>
-            <input v-model="settings.remoteRuleUrl" class="mt-1 min-h-10 w-full rounded-md border border-zinc-300 px-3 text-sm outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-100" placeholder="留空使用内置通用分流">
-            <label class="mt-3 block text-xs font-medium text-zinc-500">规则行为</label>
-            <select v-model="settings.remoteRuleBehavior" class="mt-1 min-h-10 w-full rounded-md border border-zinc-300 bg-white px-3 text-sm outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-100">
-              <option v-for="option in behaviorOptions" :key="option.value" :value="option.value">{{ option.label }}</option>
-            </select>
-            <button @click="saveSystemSettings" class="mt-3 w-full rounded-md bg-zinc-950 px-4 py-2.5 text-sm font-semibold text-white hover:bg-zinc-800">保存系统设置</button>
-            <div class="mt-3 grid grid-cols-2 gap-2">
-              <button @click="exportDb" class="rounded-md border border-zinc-300 bg-white px-3 py-2 text-sm font-medium text-zinc-700 hover:bg-zinc-50">导出数据库</button>
-              <button @click="openImportPicker" class="rounded-md border border-zinc-300 bg-white px-3 py-2 text-sm font-medium text-zinc-700 hover:bg-zinc-50">导入数据库</button>
+            <input v-model="settings.remoteRuleUrl" class="mt-1 min-h-10 w-full rounded-md border border-zinc-300 px-3 text-sm outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-100" placeholder="https://raw.githubusercontent.com/ACL4SSR/...">
+            <div class="mt-3 grid grid-cols-3 gap-2">
+              <button @click="saveSystemSettings" class="rounded-md bg-zinc-950 px-3 py-2 text-sm font-semibold text-white hover:bg-zinc-800">保存</button>
+              <button @click="exportDb" class="rounded-md border border-zinc-300 bg-white px-3 py-2 text-sm font-medium text-zinc-700 hover:bg-zinc-50">导出</button>
+              <button @click="openImportPicker" class="rounded-md border border-zinc-300 bg-white px-3 py-2 text-sm font-medium text-zinc-700 hover:bg-zinc-50">导入</button>
             </div>
             <input ref="importFileInput" type="file" accept="application/json,.json" class="hidden" @change="importDb">
+          </div>
+        </section>
+
+        <section class="rounded-lg bg-white p-4 shadow-sm ring-1 ring-zinc-200">
+          <div class="grid gap-4 xl:grid-cols-[minmax(0,1fr)_auto] xl:items-center">
+            <div>
+              <div class="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
+                <div>
+                  <h2 class="text-base font-semibold text-zinc-950">Reality 一键安装</h2>
+                  <p class="mt-1 text-sm text-zinc-600">命令已自动填入当前 Web 地址和访问令牌，节点名称默认使用服务器 hostname，安装完成后自动推送到面板。</p>
+                </div>
+              </div>
+              <pre class="mt-3 overflow-auto rounded-md bg-zinc-950 p-3 text-sm leading-6 text-zinc-100 whitespace-nowrap"><code>{{ installCommand }}</code></pre>
+            </div>
+            <button @click="copyInstallCommand" class="min-h-10 rounded-md bg-zinc-950 px-5 text-sm font-semibold text-white hover:bg-zinc-800">复制命令</button>
           </div>
         </section>
 

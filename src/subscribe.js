@@ -2,6 +2,7 @@ import {
   buildClashConfig,
   buildV2RaySubscription,
   parseProxyLink,
+  resolveClashRules,
   stringifyYaml
 } from './converter.js';
 import { getCorsHeaders, isAuthorized } from './auth.js';
@@ -75,7 +76,8 @@ export async function handleSubscribe(request, env) {
       return textResponse('No valid proxies found', { status: 404 }, corsHeaders);
     }
 
-    return textResponse(stringifyYaml(buildClashConfig(allProxies, await loadSettings(env))), {
+    const routing = await resolveClashRules(await loadSettings(env));
+    return textResponse(stringifyYaml(buildClashConfig(allProxies, routing)), {
       headers: {
         'Content-Type': 'text/yaml; charset=utf-8',
         'Content-Disposition': 'attachment; filename="subscription-clash.yaml"'
