@@ -1,4 +1,5 @@
 import { getCorsHeaders, isAuthorized, unauthorizedResponse } from './auth.js';
+import { SETTINGS_KEY } from './settings.js';
 
 function jsonResponse(data, init = {}, headers = getCorsHeaders()) {
   return new Response(JSON.stringify(data), {
@@ -27,6 +28,10 @@ export async function handleStore(request, env) {
       const configs = [];
 
       for (const key of keys.keys) {
+        if (key.name === SETTINGS_KEY || key.name.startsWith('__')) {
+          continue;
+        }
+
         const value = await env.PROXY_STORE.get(key.name);
         if (value) {
           configs.push({ id: key.name, ...JSON.parse(value) });

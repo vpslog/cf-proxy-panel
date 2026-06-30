@@ -218,8 +218,10 @@ export function getClashRules(mode = 'balanced') {
   return ROUTING_RULES[mode] || ROUTING_RULES.balanced;
 }
 
-export function buildClashConfig(proxies, ruleMode = 'balanced') {
-  return {
+export function buildClashConfig(proxies, settings = {}) {
+  const remoteRuleUrl = String(settings.remoteRuleUrl || '').trim();
+  const remoteRuleBehavior = settings.remoteRuleBehavior || 'classical';
+  const config = {
     port: 7890,
     'socks-port': 7891,
     'allow-lan': true,
@@ -234,8 +236,33 @@ export function buildClashConfig(proxies, ruleMode = 'balanced') {
         proxies: proxies.map((proxy) => proxy.name)
       }
     ],
-    rules: getClashRules(ruleMode)
+    rules: remoteRuleUrl
+      ? [
+          'DOMAIN-SUFFIX,local,DIRECT',
+          'IP-CIDR,127.0.0.0/8,DIRECT',
+          'IP-CIDR,10.0.0.0/8,DIRECT',
+          'IP-CIDR,172.16.0.0/12,DIRECT',
+          'IP-CIDR,192.168.0.0/16,DIRECT',
+          'RULE-SET,remote_rules,Proxy',
+          'GEOIP,CN,DIRECT',
+          'MATCH,Proxy'
+        ]
+      : getClashRules('balanced')
   };
+
+  if (remoteRuleUrl) {
+    config['rule-providers'] = {
+      remote_rules: {
+        type: 'http',
+        behavior: remoteRuleBehavior,
+        url: remoteRuleUrl,
+        path: './ruleset/remote_rules.yaml',
+        interval: 86400
+      }
+    };
+  }
+
+  return config;
 }
 
 export function buildV2RaySubscription(configs) {

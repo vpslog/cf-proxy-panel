@@ -62,3 +62,27 @@ async function deleteProfile(id) {
     method: 'DELETE'
   });
 }
+
+async function loadSettings() {
+  return requestJson('/settings');
+}
+
+async function saveSettings(settings) {
+  return requestJson('/settings', {
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(settings)
+  });
+}
+
+async function exportDatabase() {
+  return requestJson('/backup');
+}
+
+async function importDatabase(backup) {
+  return requestJson('/backup', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(backup)
+  });
+}

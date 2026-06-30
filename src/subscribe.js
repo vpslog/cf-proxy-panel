@@ -5,6 +5,7 @@ import {
   stringifyYaml
 } from './converter.js';
 import { getCorsHeaders, isAuthorized } from './auth.js';
+import { loadSettings } from './settings.js';
 
 function textResponse(body, init = {}, headers = getCorsHeaders()) {
   return new Response(body, {
@@ -49,7 +50,6 @@ export async function handleSubscribe(request, env) {
   const url = new URL(request.url);
   const id = url.searchParams.get('id');
   const target = (url.searchParams.get('target') || 'clash').toLowerCase();
-  const ruleMode = (url.searchParams.get('rule') || 'balanced').toLowerCase();
 
   try {
     const configs = await loadConfigs(env, id);
@@ -75,7 +75,7 @@ export async function handleSubscribe(request, env) {
       return textResponse('No valid proxies found', { status: 404 }, corsHeaders);
     }
 
-    return textResponse(stringifyYaml(buildClashConfig(allProxies, ruleMode)), {
+    return textResponse(stringifyYaml(buildClashConfig(allProxies, await loadSettings(env))), {
       headers: {
         'Content-Type': 'text/yaml; charset=utf-8',
         'Content-Disposition': 'attachment; filename="subscription-clash.yaml"'

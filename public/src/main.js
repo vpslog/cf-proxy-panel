@@ -12,17 +12,17 @@ const app = createApp({
     const draftAlias = ref('');
     const draftUrl = ref('');
     const exportTarget = ref('clash');
-    const ruleMode = ref('balanced');
+    const settings = ref({ remoteRuleUrl: '', remoteRuleBehavior: 'classical' });
     const loading = ref(false);
     const savingId = ref('');
     const notice = ref('');
     const error = ref('');
+    const importFileInput = ref(null);
 
-    const ruleOptions = [
-      { value: 'balanced', label: '通用分流' },
-      { value: 'blacklist', label: '黑名单' },
-      { value: 'global', label: '全代理' },
-      { value: 'direct', label: '全直连' }
+    const behaviorOptions = [
+      { value: 'classical', label: 'Classical' },
+      { value: 'domain', label: 'Domain' },
+      { value: 'ipcidr', label: 'IP CIDR' }
     ];
 
     const enabledCount = computed(() => profiles.value.filter((profile) => profile.enabled).length);
@@ -62,9 +62,6 @@ const app = createApp({
 
     function exportUrl(profile) {
       const params = new URLSearchParams({ target: exportTarget.value });
-      if (exportTarget.value === 'clash') {
-        params.set('rule', ruleMode.value);
-      }
       if (profile) {
         params.set('id', profile.id);
       }
@@ -84,13 +81,18 @@ const app = createApp({
 
       loading.value = true;
       try {
-        profiles.value = await loadProfiles();
+        const [profileData, settingsData] = await Promise.all([
+          loadProfiles(),
+          loadSettings()
+        ]);
+        profiles.value = profileData;
+        settings.value = settingsData;
       } catch (e) {
         if (e.message === 'UNAUTHORIZED') {
           authed.value = false;
           flash('访问令牌无效，请重新验证。', true);
         } else {
-          flash('订阅列表加载失败，请稍后重试。', true);
+          flash('数据加载失败，请稍后重试。', true);
         }
       } finally {
         loading.value = false;
@@ -161,6 +163,18 @@ const app = createApp({
       }
     }
 
+    async function saveSystemSettings() {
+      loading.value = true;
+      try {
+        settings.value = await saveSettings(settings.value);
+        flash('系统设置已保存。');
+      } catch (e) {
+        flash(e.message === 'UNAUTHORIZED' ? '访问令牌无效。' : '设置保存失败。', true);
+      } finally {
+        loading.value = false;
+      }
+    }
+
     async function toggleEnabled(profile) {
       profile.enabled = !profile.enabled;
       await saveProfile(profile);
@@ -180,6 +194,45 @@ const app = createApp({
         flash(e.message === 'UNAUTHORIZED' ? '访问令牌无效。' : '订阅删除失败。', true);
       } finally {
         savingId.value = '';
+      }
+    }
+
+    async function exportDb() {
+      try {
+        const backup = await exportDatabase();
+        const blob = new Blob([JSON.stringify(backup, null, 2)], { type: 'application/json' });
+        const link = document.createElement('a');
+        link.href = URL.createObjectURL(blob);
+        link.download = `cf-proxy-panel-backup-${new Date().toISOString().slice(0, 10)}.json`;
+        link.click();
+        URL.revokeObjectURL(link.href);
+        flash('数据库备份已导出。');
+      } catch (e) {
+        flash(e.message === 'UNAUTHORIZED' ? '访问令牌无效。' : '导出失败。', true);
+      }
+    }
+
+    function openImportPicker() {
+      importFileInput.value?.click();
+    }
+
+    async function importDb(event) {
+      const file = event.target.files?.[0];
+      event.target.value = '';
+      if (!file) {
+        return;
+      }
+      if (!confirm('导入会替换当前所有节点和系统设置，确认继续？')) {
+        return;
+      }
+
+      try {
+        const backup = JSON.parse(await file.text());
+        await importDatabase(backup);
+        await loadData();
+        flash('数据库已导入。');
+      } catch (e) {
+        flash('导入失败，请确认备份文件格式正确。', true);
       }
     }
 
@@ -208,12 +261,13 @@ const app = createApp({
       draftAlias,
       draftUrl,
       exportTarget,
-      ruleMode,
-      ruleOptions,
+      settings,
+      behaviorOptions,
       loading,
       savingId,
       notice,
       error,
+      importFileInput,
       enabledCount,
       canAdd,
       installCommand,
@@ -222,8 +276,12 @@ const app = createApp({
       lock,
       addNewProfile,
       saveProfile,
+      saveSystemSettings,
       toggleEnabled,
       deleteProf,
+      exportDb,
+      openImportPicker,
+      importDb,
       copyProfileLink,
       copyAllLinks,
       copyInstallCommand,
