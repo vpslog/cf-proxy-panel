@@ -45,9 +45,13 @@
           </div>
 
           <div class="rounded-lg bg-white p-4 shadow-sm ring-1 ring-zinc-200">
-            <h2 class="text-base font-semibold text-zinc-950">规则设置</h2>
+            <div class="flex items-center justify-between gap-3">
+              <h2 class="text-base font-semibold text-zinc-950">规则设置</h2>
+              <button @click="openAdvancedRules" class="rounded-md border border-zinc-300 bg-white px-3 py-2 text-sm font-medium text-zinc-700 hover:bg-zinc-50">高级设置</button>
+            </div>
             <input v-model="settings.remoteRuleUrl" class="mt-4 min-h-10 w-full rounded-md border border-zinc-300 px-3 text-sm outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-100" placeholder="https://raw.githubusercontent.com/ACL4SSR/...">
             <button @click="saveSystemSettings" class="mt-3 w-full rounded-md bg-zinc-950 px-3 py-2 text-sm font-semibold text-white hover:bg-zinc-800">保存</button>
+            <p v-if="extraRuleCount" class="mt-2 text-xs text-zinc-500">已配置 {{ extraRuleCount }} 个高级规则组，导出 Clash 时优先匹配。</p>
           </div>
 
           <div class="rounded-lg bg-white p-4 shadow-sm ring-1 ring-zinc-200 xl:order-last">
@@ -124,11 +128,39 @@
         </section>
       </template>
 
+      <div v-if="advancedRulesOpen" class="fixed inset-0 z-30 flex items-center justify-center bg-black/40 px-4 py-6">
+        <section class="max-h-[88vh] w-full max-w-3xl overflow-hidden rounded-lg bg-white shadow-xl ring-1 ring-zinc-200">
+          <div class="flex items-center justify-between border-b border-zinc-200 px-5 py-4">
+            <div>
+              <h2 class="text-lg font-semibold text-zinc-950">高级规则设置</h2>
+              <p class="mt-1 text-sm text-zinc-500">每个规则组按“规则组名称 + 规则内容”保存，内容使用 Clash classical 列表格式。</p>
+            </div>
+            <button @click="closeAdvancedRules" class="rounded-md border border-zinc-300 bg-white px-3 py-2 text-sm font-medium text-zinc-700 hover:bg-zinc-50">关闭</button>
+          </div>
+
+          <div class="max-h-[60vh] space-y-4 overflow-y-auto px-5 py-4">
+            <div v-for="(group, index) in editingRuleGroups" :key="index" class="rounded-lg border border-zinc-200 p-4">
+              <div class="flex flex-col gap-3 sm:flex-row">
+                <input v-model="group.name" class="min-h-10 flex-1 rounded-md border border-zinc-300 px-3 text-sm outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-100" placeholder="规则组名称，例如：直连 / 代理 / 拦截">
+                <button @click="removeExtraRuleGroup(index)" class="rounded-md bg-red-50 px-3 py-2 text-sm font-medium text-red-700 hover:bg-red-100">删除</button>
+              </div>
+              <textarea v-model="group.content" rows="7" class="mt-3 w-full resize-y rounded-md border border-zinc-300 px-3 py-2 font-mono text-sm leading-6 outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-100" placeholder="# 支持注释&#10;DOMAIN-SUFFIX,example.com&#10;IP-CIDR,192.168.0.0/16,no-resolve"></textarea>
+            </div>
+            <button @click="addExtraRuleGroup" class="w-full rounded-md border border-dashed border-zinc-300 bg-zinc-50 px-4 py-3 text-sm font-semibold text-zinc-700 hover:bg-zinc-100">添加规则组</button>
+          </div>
+
+          <div class="flex flex-col gap-2 border-t border-zinc-200 px-5 py-4 sm:flex-row sm:justify-end">
+            <button @click="closeAdvancedRules" class="rounded-md border border-zinc-300 bg-white px-4 py-2 text-sm font-medium text-zinc-700 hover:bg-zinc-50">取消</button>
+            <button @click="saveAdvancedRules" class="rounded-md bg-zinc-950 px-4 py-2 text-sm font-semibold text-white hover:bg-zinc-800">保存高级设置</button>
+          </div>
+        </section>
+      </div>
+
       <footer class="border-t border-zinc-200 pt-4 text-center text-xs text-zinc-500">
         cf-proxy-panel by vpslog &middot; <a :href="projectRepoUrl" target="_blank" rel="noreferrer" class="font-medium text-zinc-700 hover:text-zinc-950">GitHub</a>
       </footer>
 
-      <div v-if="notice || error" class="fixed bottom-5 left-1/2 z-20 -translate-x-1/2 rounded-md px-4 py-3 text-sm font-medium shadow-lg" :class="error ? 'bg-red-600 text-white' : 'bg-zinc-950 text-white'">
+      <div v-if="notice || error" class="fixed bottom-5 left-1/2 z-40 -translate-x-1/2 rounded-md px-4 py-3 text-sm font-medium shadow-lg" :class="error ? 'bg-red-600 text-white' : 'bg-zinc-950 text-white'">
         {{ error || notice }}
       </div>
     </main>

@@ -12,7 +12,9 @@ const app = createApp({
     const draftAlias = ref('');
     const draftUrl = ref('');
     const exportTarget = ref('clash');
-    const settings = ref({ remoteRuleUrl: '' });
+    const settings = ref({ remoteRuleUrl: '', extraRuleGroups: [] });
+    const editingRuleGroups = ref([]);
+    const advancedRulesOpen = ref(false);
     const loading = ref(false);
     const savingId = ref('');
     const notice = ref('');
@@ -21,12 +23,24 @@ const app = createApp({
 
     const enabledCount = computed(() => profiles.value.filter((profile) => profile.enabled).length);
     const canAdd = computed(() => draftAlias.value.trim() && draftUrl.value.trim());
+    const extraRuleCount = computed(() => normalizeRuleGroups(settings.value.extraRuleGroups).length);
     const installCommand = computed(() => {
       const webUrl = shellQuote(window.location.origin);
       const token = shellQuote(getAuthToken());
 
       return `curl -fsSL ${INSTALLER_URL} -o /tmp/cf-proxy-panel-install.sh && sudo env SUBCONVERT_NON_INTERACTIVE=1 SUBCONVERT_WEB_URL=${webUrl} SUBCONVERT_TOKEN=${token} SUBCONVERT_ALIAS="$(hostname)" bash /tmp/cf-proxy-panel-install.sh`;
     });
+
+    function normalizeRuleGroups(groups = []) {
+      return Array.isArray(groups)
+        ? groups
+            .map((group) => ({
+              name: String(group.name || '').trim(),
+              content: String(group.content || '').trim()
+            }))
+            .filter((group) => group.name && group.content)
+        : [];
+    }
 
     function shellQuote(value) {
       return `'${String(value).replace(/'/g, `'\\''`)}'`;
@@ -80,7 +94,10 @@ const app = createApp({
           loadSettings()
         ]);
         profiles.value = profileData;
-        settings.value = settingsData;
+        settings.value = {
+          remoteRuleUrl: settingsData.remoteRuleUrl || '',
+          extraRuleGroups: normalizeRuleGroups(settingsData.extraRuleGroups)
+        };
       } catch (e) {
         if (e.message === 'UNAUTHORIZED') {
           authed.value = false;
@@ -160,13 +177,48 @@ const app = createApp({
     async function saveSystemSettings() {
       loading.value = true;
       try {
-        settings.value = await saveSettings(settings.value);
+        settings.value = await saveSettings({
+          ...settings.value,
+          extraRuleGroups: normalizeRuleGroups(settings.value.extraRuleGroups)
+        });
         flash('规则设置已保存。');
       } catch (e) {
         flash(e.message === 'UNAUTHORIZED' ? '访问令牌无效。' : '规则设置保存失败。', true);
       } finally {
         loading.value = false;
       }
+    }
+
+    function openAdvancedRules() {
+      editingRuleGroups.value = normalizeRuleGroups(settings.value.extraRuleGroups).map((group) => ({ ...group }));
+      if (editingRuleGroups.value.length === 0) {
+        editingRuleGroups.value.push({ name: '', content: '' });
+      }
+      advancedRulesOpen.value = true;
+    }
+
+    function closeAdvancedRules() {
+      advancedRulesOpen.value = false;
+    }
+
+    function addExtraRuleGroup() {
+      editingRuleGroups.value.push({ name: '', content: '' });
+    }
+
+    function removeExtraRuleGroup(index) {
+      editingRuleGroups.value.splice(index, 1);
+      if (editingRuleGroups.value.length === 0) {
+        editingRuleGroups.value.push({ name: '', content: '' });
+      }
+    }
+
+    async function saveAdvancedRules() {
+      settings.value = {
+        ...settings.value,
+        extraRuleGroups: normalizeRuleGroups(editingRuleGroups.value)
+      };
+      await saveSystemSettings();
+      advancedRulesOpen.value = false;
     }
 
     async function toggleEnabled(profile) {
@@ -256,6 +308,8 @@ const app = createApp({
       draftUrl,
       exportTarget,
       settings,
+      editingRuleGroups,
+      advancedRulesOpen,
       loading,
       savingId,
       notice,
@@ -263,6 +317,7 @@ const app = createApp({
       importFileInput,
       enabledCount,
       canAdd,
+      extraRuleCount,
       installCommand,
       projectRepoUrl: PROJECT_REPO_URL,
       unlock,
@@ -270,6 +325,11 @@ const app = createApp({
       addNewProfile,
       saveProfile,
       saveSystemSettings,
+      openAdvancedRules,
+      closeAdvancedRules,
+      addExtraRuleGroup,
+      removeExtraRuleGroup,
+      saveAdvancedRules,
       toggleEnabled,
       deleteProf,
       exportDb,

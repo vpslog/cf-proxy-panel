@@ -4,12 +4,24 @@ export const SETTINGS_KEY = '__cf_proxy_panel_settings';
 export const DEFAULT_REMOTE_RULE_URL = 'https://raw.githubusercontent.com/ACL4SSR/ACL4SSR/master/Clash/config/ACL4SSR_Online.ini';
 
 export const DEFAULT_SETTINGS = {
-  remoteRuleUrl: DEFAULT_REMOTE_RULE_URL
+  remoteRuleUrl: DEFAULT_REMOTE_RULE_URL,
+  extraRuleGroups: []
 };
 
 export function normalizeSettings(settings = {}) {
+  const extraRuleGroups = Array.isArray(settings.extraRuleGroups)
+    ? settings.extraRuleGroups
+        .map((group) => ({
+          name: String(group?.name || '').trim(),
+          content: String(group?.content || '').trim()
+        }))
+        .filter((group) => group.name && group.content)
+        .slice(0, 20)
+    : [];
+
   return {
-    remoteRuleUrl: String(settings.remoteRuleUrl || DEFAULT_SETTINGS.remoteRuleUrl).trim()
+    remoteRuleUrl: String(settings.remoteRuleUrl || DEFAULT_SETTINGS.remoteRuleUrl).trim(),
+    extraRuleGroups
   };
 }
 

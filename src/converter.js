@@ -234,9 +234,24 @@ function policyForGroup(groupName) {
   return 'Proxy';
 }
 
+function policyForRuleGroup(groupName) {
+  if (/拦截|拒绝|reject/i.test(groupName)) {
+    return 'REJECT';
+  }
+
+  if (/直连|direct/i.test(groupName)) {
+    return 'DIRECT';
+  }
+
+  return policyForGroup(groupName);
+}
 function parseInlineRule(groupName, rawRule) {
-  const policy = policyForGroup(groupName);
+  const policy = policyForRuleGroup(groupName);
   const rule = rawRule.replace(/^\[\]/, '').trim();
+
+  if (!rule || rule.startsWith('#') || rule.startsWith(';')) {
+    return '';
+  }
 
   if (/^FINAL$/i.test(rule)) {
     return policy === 'DIRECT' ? 'MATCH,DIRECT' : 'MATCH,Proxy';
@@ -250,6 +265,32 @@ function parseInlineRule(groupName, rawRule) {
   return `${rule},${policy}`;
 }
 
+function parseExtraRuleGroups(extraRuleGroups = []) {
+  const rules = [];
+
+  for (const group of extraRuleGroups) {
+    const groupName = String(group?.name || '').trim();
+    const content = String(group?.content || '');
+
+    if (!groupName || !content.trim()) {
+      continue;
+    }
+
+    for (const line of content.split('\n')) {
+      const trimmed = line.trim();
+      if (!trimmed || trimmed.startsWith('#') || trimmed.startsWith(';')) {
+        continue;
+      }
+
+      const parsed = parseInlineRule(groupName, trimmed);
+      if (parsed) {
+        rules.push(parsed);
+      }
+    }
+  }
+
+  return rules;
+}
 async function fetchRemoteText(url) {
   const response = await fetch(url, {
     headers: { 'User-Agent': 'cf-proxy-panel' }
@@ -342,10 +383,25 @@ async function buildRemoteRules(remoteRuleUrl) {
 
 export async function resolveClashRules(settings = {}) {
   try {
-    return await buildRemoteRules(String(settings.remoteRuleUrl || '').trim());
+    const routing = await buildRemoteRules(String(settings.remoteRuleUrl || '').trim());
+    const extraRules = parseExtraRuleGroups(settings.extraRuleGroups);
+
+    if (extraRules.length === 0) {
+      return routing;
+    }
+
+    return {
+      ...routing,
+      rules: [...extraRules, ...(routing.rules || getClashRules('balanced'))]
+    };
   } catch (error) {
     console.error('Failed to load remote rules:', error);
-    return { rules: getClashRules('balanced') };
+    return {
+      rules: [
+        ...parseExtraRuleGroups(settings.extraRuleGroups),
+        ...getClashRules('balanced')
+      ]
+    };
   }
 }
 
