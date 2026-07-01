@@ -12,7 +12,7 @@ const app = createApp({
     const draftAlias = ref('');
     const draftUrl = ref('');
     const exportTarget = ref('clash');
-    const settings = ref({ remoteRuleUrl: '', remoteRuleBehavior: 'classical' });
+    const settings = ref({ remoteRuleUrl: '' });
     const loading = ref(false);
     const savingId = ref('');
     const notice = ref('');
@@ -161,9 +161,9 @@ const app = createApp({
       loading.value = true;
       try {
         settings.value = await saveSettings(settings.value);
-        flash('系统设置已保存。');
+        flash('规则设置已保存。');
       } catch (e) {
-        flash(e.message === 'UNAUTHORIZED' ? '访问令牌无效。' : '设置保存失败。', true);
+        flash(e.message === 'UNAUTHORIZED' ? '访问令牌无效。' : '规则设置保存失败。', true);
       } finally {
         loading.value = false;
       }
@@ -202,7 +202,7 @@ const app = createApp({
         URL.revokeObjectURL(link.href);
         flash('数据库备份已导出。');
       } catch (e) {
-        flash(e.message === 'UNAUTHORIZED' ? '访问令牌无效。' : '导出失败。', true);
+        flash(e.message === 'UNAUTHORIZED' ? '访问令牌无效。' : '备份失败。', true);
       }
     }
 
@@ -216,7 +216,7 @@ const app = createApp({
       if (!file) {
         return;
       }
-      if (!confirm('导入会替换当前所有节点和系统设置，确认继续？')) {
+      if (!confirm('恢复会替换当前所有节点和规则设置，确认继续？')) {
         return;
       }
 
@@ -224,9 +224,9 @@ const app = createApp({
         const backup = JSON.parse(await file.text());
         await importDatabase(backup);
         await loadData();
-        flash('数据库已导入。');
+        flash('数据库已恢复。');
       } catch (e) {
-        flash('导入失败，请确认备份文件格式正确。', true);
+        flash('恢复失败，请确认备份文件格式正确。', true);
       }
     }
 
