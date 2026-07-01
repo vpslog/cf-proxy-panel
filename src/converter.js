@@ -151,67 +151,83 @@ export function stringifyYaml(value, indent = 0) {
   return `${spaces}${String(value)}\n`;
 }
 
+const CLASH_GROUPS = {
+  selector: '🚀 节点选择',
+  auto: '♻️ 自动选择',
+  foreignMedia: '🌍 国外媒体',
+  telegram: '📲 电报信息',
+  microsoft: 'Ⓜ️ 微软服务',
+  apple: '🍎 苹果服务',
+  googleFcm: '📢 谷歌FCM',
+  direct: '🎯 全球直连',
+  reject: '🛑 全球拦截',
+  sanitize: '🍃 应用净化',
+  fallback: '🐟 漏网之鱼'
+};
+
+const BUILTIN_GROUP_NAMES = new Set(Object.values(CLASH_GROUPS));
+
 const ROUTING_RULES = {
   balanced: [
-    'DOMAIN-SUFFIX,local,DIRECT',
-    'IP-CIDR,127.0.0.0/8,DIRECT',
-    'IP-CIDR,10.0.0.0/8,DIRECT',
-    'IP-CIDR,172.16.0.0/12,DIRECT',
-    'IP-CIDR,192.168.0.0/16,DIRECT',
-    'IP-CIDR,169.254.0.0/16,DIRECT',
-    'IP-CIDR,224.0.0.0/4,DIRECT',
-    'IP-CIDR6,::1/128,DIRECT',
-    'IP-CIDR6,fc00::/7,DIRECT',
-    'DOMAIN-SUFFIX,google.com,Proxy',
-    'DOMAIN-SUFFIX,googleapis.com,Proxy',
-    'DOMAIN-SUFFIX,gstatic.com,Proxy',
-    'DOMAIN-SUFFIX,youtube.com,Proxy',
-    'DOMAIN-SUFFIX,ytimg.com,Proxy',
-    'DOMAIN-SUFFIX,facebook.com,Proxy',
-    'DOMAIN-SUFFIX,instagram.com,Proxy',
-    'DOMAIN-SUFFIX,whatsapp.com,Proxy',
-    'DOMAIN-SUFFIX,twitter.com,Proxy',
-    'DOMAIN-SUFFIX,x.com,Proxy',
-    'DOMAIN-SUFFIX,telegram.org,Proxy',
-    'DOMAIN-SUFFIX,t.me,Proxy',
-    'DOMAIN-SUFFIX,github.com,Proxy',
-    'DOMAIN-SUFFIX,githubusercontent.com,Proxy',
-    'DOMAIN-SUFFIX,openai.com,Proxy',
-    'DOMAIN-SUFFIX,chatgpt.com,Proxy',
-    'DOMAIN-SUFFIX,anthropic.com,Proxy',
-    'DOMAIN-SUFFIX,discord.com,Proxy',
-    'DOMAIN-SUFFIX,netflix.com,Proxy',
-    'GEOIP,CN,DIRECT',
-    'MATCH,Proxy'
+    `DOMAIN-SUFFIX,local,${CLASH_GROUPS.direct}`,
+    `IP-CIDR,127.0.0.0/8,${CLASH_GROUPS.direct}`,
+    `IP-CIDR,10.0.0.0/8,${CLASH_GROUPS.direct}`,
+    `IP-CIDR,172.16.0.0/12,${CLASH_GROUPS.direct}`,
+    `IP-CIDR,192.168.0.0/16,${CLASH_GROUPS.direct}`,
+    `IP-CIDR,169.254.0.0/16,${CLASH_GROUPS.direct}`,
+    `IP-CIDR,224.0.0.0/4,${CLASH_GROUPS.direct}`,
+    `IP-CIDR6,::1/128,${CLASH_GROUPS.direct}`,
+    `IP-CIDR6,fc00::/7,${CLASH_GROUPS.direct}`,
+    `DOMAIN-SUFFIX,google.com,${CLASH_GROUPS.selector}`,
+    `DOMAIN-SUFFIX,googleapis.com,${CLASH_GROUPS.selector}`,
+    `DOMAIN-SUFFIX,gstatic.com,${CLASH_GROUPS.selector}`,
+    `DOMAIN-SUFFIX,youtube.com,${CLASH_GROUPS.selector}`,
+    `DOMAIN-SUFFIX,ytimg.com,${CLASH_GROUPS.selector}`,
+    `DOMAIN-SUFFIX,facebook.com,${CLASH_GROUPS.selector}`,
+    `DOMAIN-SUFFIX,instagram.com,${CLASH_GROUPS.selector}`,
+    `DOMAIN-SUFFIX,whatsapp.com,${CLASH_GROUPS.selector}`,
+    `DOMAIN-SUFFIX,twitter.com,${CLASH_GROUPS.selector}`,
+    `DOMAIN-SUFFIX,x.com,${CLASH_GROUPS.selector}`,
+    `DOMAIN-SUFFIX,telegram.org,${CLASH_GROUPS.telegram}`,
+    `DOMAIN-SUFFIX,t.me,${CLASH_GROUPS.telegram}`,
+    `DOMAIN-SUFFIX,github.com,${CLASH_GROUPS.selector}`,
+    `DOMAIN-SUFFIX,githubusercontent.com,${CLASH_GROUPS.selector}`,
+    `DOMAIN-SUFFIX,openai.com,${CLASH_GROUPS.selector}`,
+    `DOMAIN-SUFFIX,chatgpt.com,${CLASH_GROUPS.selector}`,
+    `DOMAIN-SUFFIX,anthropic.com,${CLASH_GROUPS.selector}`,
+    `DOMAIN-SUFFIX,discord.com,${CLASH_GROUPS.selector}`,
+    `DOMAIN-SUFFIX,netflix.com,${CLASH_GROUPS.foreignMedia}`,
+    `GEOIP,CN,${CLASH_GROUPS.direct}`,
+    `MATCH,${CLASH_GROUPS.fallback}`
   ],
   blacklist: [
-    'DOMAIN-SUFFIX,local,DIRECT',
-    'IP-CIDR,127.0.0.0/8,DIRECT',
-    'IP-CIDR,10.0.0.0/8,DIRECT',
-    'IP-CIDR,172.16.0.0/12,DIRECT',
-    'IP-CIDR,192.168.0.0/16,DIRECT',
-    'DOMAIN-SUFFIX,google.com,Proxy',
-    'DOMAIN-SUFFIX,youtube.com,Proxy',
-    'DOMAIN-SUFFIX,facebook.com,Proxy',
-    'DOMAIN-SUFFIX,instagram.com,Proxy',
-    'DOMAIN-SUFFIX,twitter.com,Proxy',
-    'DOMAIN-SUFFIX,x.com,Proxy',
-    'DOMAIN-SUFFIX,telegram.org,Proxy',
-    'DOMAIN-SUFFIX,t.me,Proxy',
-    'DOMAIN-SUFFIX,github.com,Proxy',
-    'DOMAIN-SUFFIX,openai.com,Proxy',
-    'DOMAIN-SUFFIX,chatgpt.com,Proxy',
-    'MATCH,DIRECT'
+    `DOMAIN-SUFFIX,local,${CLASH_GROUPS.direct}`,
+    `IP-CIDR,127.0.0.0/8,${CLASH_GROUPS.direct}`,
+    `IP-CIDR,10.0.0.0/8,${CLASH_GROUPS.direct}`,
+    `IP-CIDR,172.16.0.0/12,${CLASH_GROUPS.direct}`,
+    `IP-CIDR,192.168.0.0/16,${CLASH_GROUPS.direct}`,
+    `DOMAIN-SUFFIX,google.com,${CLASH_GROUPS.selector}`,
+    `DOMAIN-SUFFIX,youtube.com,${CLASH_GROUPS.selector}`,
+    `DOMAIN-SUFFIX,facebook.com,${CLASH_GROUPS.selector}`,
+    `DOMAIN-SUFFIX,instagram.com,${CLASH_GROUPS.selector}`,
+    `DOMAIN-SUFFIX,twitter.com,${CLASH_GROUPS.selector}`,
+    `DOMAIN-SUFFIX,x.com,${CLASH_GROUPS.selector}`,
+    `DOMAIN-SUFFIX,telegram.org,${CLASH_GROUPS.telegram}`,
+    `DOMAIN-SUFFIX,t.me,${CLASH_GROUPS.telegram}`,
+    `DOMAIN-SUFFIX,github.com,${CLASH_GROUPS.selector}`,
+    `DOMAIN-SUFFIX,openai.com,${CLASH_GROUPS.selector}`,
+    `DOMAIN-SUFFIX,chatgpt.com,${CLASH_GROUPS.selector}`,
+    `MATCH,${CLASH_GROUPS.direct}`
   ],
   global: [
-    'DOMAIN-SUFFIX,local,DIRECT',
-    'IP-CIDR,127.0.0.0/8,DIRECT',
-    'IP-CIDR,10.0.0.0/8,DIRECT',
-    'IP-CIDR,172.16.0.0/12,DIRECT',
-    'IP-CIDR,192.168.0.0/16,DIRECT',
-    'MATCH,Proxy'
+    `DOMAIN-SUFFIX,local,${CLASH_GROUPS.direct}`,
+    `IP-CIDR,127.0.0.0/8,${CLASH_GROUPS.direct}`,
+    `IP-CIDR,10.0.0.0/8,${CLASH_GROUPS.direct}`,
+    `IP-CIDR,172.16.0.0/12,${CLASH_GROUPS.direct}`,
+    `IP-CIDR,192.168.0.0/16,${CLASH_GROUPS.direct}`,
+    `MATCH,${CLASH_GROUPS.selector}`
   ],
-  direct: ['MATCH,DIRECT']
+  direct: [`MATCH,${CLASH_GROUPS.direct}`]
 };
 
 export function getClashRules(mode = 'balanced') {
@@ -223,30 +239,29 @@ function providerName(index) {
 }
 
 function policyForGroup(groupName) {
-  if (/拦截|净化|reject/i.test(groupName)) {
-    return 'REJECT';
+  const name = String(groupName || '').trim();
+
+  if (!name || /^(proxy|代理)$/i.test(name)) {
+    return CLASH_GROUPS.selector;
   }
 
-  if (/直连|direct/i.test(groupName)) {
-    return 'DIRECT';
+  if (/直连|direct/i.test(name)) {
+    return CLASH_GROUPS.direct;
   }
 
-  return 'Proxy';
+  if (/净化/i.test(name)) {
+    return CLASH_GROUPS.sanitize;
+  }
+
+  if (/拦截|拒绝|reject/i.test(name)) {
+    return CLASH_GROUPS.reject;
+  }
+
+  return name;
 }
 
-function policyForRuleGroup(groupName) {
-  if (/拦截|拒绝|reject/i.test(groupName)) {
-    return 'REJECT';
-  }
-
-  if (/直连|direct/i.test(groupName)) {
-    return 'DIRECT';
-  }
-
-  return policyForGroup(groupName);
-}
 function parseInlineRule(groupName, rawRule) {
-  const policy = policyForRuleGroup(groupName);
+  const policy = policyForGroup(groupName);
   const rule = rawRule.replace(/^\[\]/, '').trim();
 
   if (!rule || rule.startsWith('#') || rule.startsWith(';')) {
@@ -254,7 +269,7 @@ function parseInlineRule(groupName, rawRule) {
   }
 
   if (/^FINAL$/i.test(rule)) {
-    return policy === 'DIRECT' ? 'MATCH,DIRECT' : 'MATCH,Proxy';
+    return `MATCH,${policy}`;
   }
 
   const parts = rule.split(',').map((part) => part.trim()).filter(Boolean);
@@ -267,6 +282,7 @@ function parseInlineRule(groupName, rawRule) {
 
 function parseExtraRuleGroups(extraRuleGroups = []) {
   const rules = [];
+  const ruleGroups = [];
 
   for (const group of extraRuleGroups) {
     const groupName = String(group?.name || '').trim();
@@ -275,6 +291,9 @@ function parseExtraRuleGroups(extraRuleGroups = []) {
     if (!groupName || !content.trim()) {
       continue;
     }
+
+    const policy = policyForGroup(groupName);
+    ruleGroups.push(policy);
 
     for (const line of content.split('\n')) {
       const trimmed = line.trim();
@@ -289,8 +308,9 @@ function parseExtraRuleGroups(extraRuleGroups = []) {
     }
   }
 
-  return rules;
+  return { rules, ruleGroups: [...new Set(ruleGroups)] };
 }
+
 async function fetchRemoteText(url) {
   const response = await fetch(url, {
     headers: { 'User-Agent': 'cf-proxy-panel' }
@@ -306,6 +326,7 @@ async function fetchRemoteText(url) {
 function parseAcl4ssrConfig(text) {
   const ruleProviders = {};
   const rules = [];
+  const ruleGroups = [];
   let providerIndex = 0;
 
   for (const line of text.split('\n')) {
@@ -322,6 +343,8 @@ function parseAcl4ssrConfig(text) {
 
     const groupName = value.slice(0, commaIndex).trim();
     const target = value.slice(commaIndex + 1).trim();
+    const policy = policyForGroup(groupName);
+    ruleGroups.push(policy);
 
     if (target.startsWith('[]')) {
       rules.push(parseInlineRule(groupName, target));
@@ -339,16 +362,16 @@ function parseAcl4ssrConfig(text) {
         path: `./ruleset/${name}.yaml`,
         interval: 86400
       };
-      rules.push(`RULE-SET,${name},${policyForGroup(groupName)}`);
+      rules.push(`RULE-SET,${name},${policy}`);
     }
   }
 
-  return { ruleProviders, rules };
+  return { ruleProviders, rules, ruleGroups: [...new Set(ruleGroups)] };
 }
 
 async function buildRemoteRules(remoteRuleUrl) {
   if (!remoteRuleUrl) {
-    return { rules: getClashRules('balanced') };
+    return { rules: getClashRules('balanced'), ruleGroups: Object.values(CLASH_GROUPS) };
   }
 
   if (/\.ini($|\?)/i.test(remoteRuleUrl)) {
@@ -369,40 +392,122 @@ async function buildRemoteRules(remoteRuleUrl) {
       }
     },
     rules: [
-      'DOMAIN-SUFFIX,local,DIRECT',
-      'IP-CIDR,127.0.0.0/8,DIRECT',
-      'IP-CIDR,10.0.0.0/8,DIRECT',
-      'IP-CIDR,172.16.0.0/12,DIRECT',
-      'IP-CIDR,192.168.0.0/16,DIRECT',
-      'RULE-SET,remote_rules,Proxy',
-      'GEOIP,CN,DIRECT',
-      'MATCH,Proxy'
-    ]
+      `DOMAIN-SUFFIX,local,${CLASH_GROUPS.direct}`,
+      `IP-CIDR,127.0.0.0/8,${CLASH_GROUPS.direct}`,
+      `IP-CIDR,10.0.0.0/8,${CLASH_GROUPS.direct}`,
+      `IP-CIDR,172.16.0.0/12,${CLASH_GROUPS.direct}`,
+      `IP-CIDR,192.168.0.0/16,${CLASH_GROUPS.direct}`,
+      `RULE-SET,remote_rules,${CLASH_GROUPS.selector}`,
+      `GEOIP,CN,${CLASH_GROUPS.direct}`,
+      `MATCH,${CLASH_GROUPS.fallback}`
+    ],
+    ruleGroups: [CLASH_GROUPS.selector, CLASH_GROUPS.direct, CLASH_GROUPS.fallback]
   };
 }
 
 export async function resolveClashRules(settings = {}) {
+  const extra = parseExtraRuleGroups(settings.extraRuleGroups);
+
   try {
     const routing = await buildRemoteRules(String(settings.remoteRuleUrl || '').trim());
-    const extraRules = parseExtraRuleGroups(settings.extraRuleGroups);
-
-    if (extraRules.length === 0) {
-      return routing;
-    }
 
     return {
       ...routing,
-      rules: [...extraRules, ...(routing.rules || getClashRules('balanced'))]
+      rules: [...extra.rules, ...(routing.rules || getClashRules('balanced'))],
+      ruleGroups: [...new Set([...(extra.ruleGroups || []), ...(routing.ruleGroups || [])])]
     };
   } catch (error) {
     console.error('Failed to load remote rules:', error);
     return {
-      rules: [
-        ...parseExtraRuleGroups(settings.extraRuleGroups),
-        ...getClashRules('balanced')
-      ]
+      rules: [...extra.rules, ...getClashRules('balanced')],
+      ruleGroups: extra.ruleGroups
     };
   }
+}
+
+function buildClashProxyGroups(proxies, routing = {}) {
+  const proxyNames = proxies.map((proxy) => proxy.name);
+  const selectable = [CLASH_GROUPS.selector, CLASH_GROUPS.auto, CLASH_GROUPS.direct, ...proxyNames];
+  const directFirst = [CLASH_GROUPS.direct, CLASH_GROUPS.selector, ...proxyNames];
+  const groups = [
+    {
+      name: CLASH_GROUPS.selector,
+      type: 'select',
+      proxies: [CLASH_GROUPS.auto, 'DIRECT', ...proxyNames]
+    },
+    {
+      name: CLASH_GROUPS.auto,
+      type: 'url-test',
+      url: 'http://www.gstatic.com/generate_204',
+      interval: 300,
+      tolerance: 50,
+      proxies: proxyNames
+    },
+    {
+      name: CLASH_GROUPS.foreignMedia,
+      type: 'select',
+      proxies: selectable
+    },
+    {
+      name: CLASH_GROUPS.telegram,
+      type: 'select',
+      proxies: directFirst
+    },
+    {
+      name: CLASH_GROUPS.microsoft,
+      type: 'select',
+      proxies: directFirst
+    },
+    {
+      name: CLASH_GROUPS.apple,
+      type: 'select',
+      proxies: directFirst
+    },
+    {
+      name: CLASH_GROUPS.googleFcm,
+      type: 'select',
+      proxies: selectable
+    },
+    {
+      name: CLASH_GROUPS.direct,
+      type: 'select',
+      proxies: ['DIRECT', CLASH_GROUPS.selector, CLASH_GROUPS.auto]
+    },
+    {
+      name: CLASH_GROUPS.reject,
+      type: 'select',
+      proxies: ['REJECT', 'DIRECT']
+    },
+    {
+      name: CLASH_GROUPS.sanitize,
+      type: 'select',
+      proxies: ['REJECT', 'DIRECT']
+    }
+  ];
+
+  const usedNames = new Set(groups.map((group) => group.name));
+  for (const name of routing.ruleGroups || []) {
+    if (!name || usedNames.has(name) || name === 'DIRECT' || name === 'REJECT') {
+      continue;
+    }
+
+    groups.push({
+      name,
+      type: 'select',
+      proxies: selectable
+    });
+    usedNames.add(name);
+  }
+
+  if (!usedNames.has(CLASH_GROUPS.fallback)) {
+    groups.push({
+      name: CLASH_GROUPS.fallback,
+      type: 'select',
+      proxies: selectable
+    });
+  }
+
+  return groups.filter((group) => BUILTIN_GROUP_NAMES.has(group.name) || group.proxies.length > 0);
 }
 
 export function buildClashConfig(proxies, routing = {}) {
@@ -414,13 +519,7 @@ export function buildClashConfig(proxies, routing = {}) {
     'log-level': 'info',
     'external-controller': ':9090',
     proxies,
-    'proxy-groups': [
-      {
-        name: 'Proxy',
-        type: 'select',
-        proxies: proxies.map((proxy) => proxy.name)
-      }
-    ],
+    'proxy-groups': buildClashProxyGroups(proxies, routing),
     rules: routing.rules || getClashRules('balanced')
   };
 
