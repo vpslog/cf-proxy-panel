@@ -20,7 +20,10 @@
         </div>
         <div v-if="authed" class="flex flex-wrap items-center gap-2 text-sm">
           <span class="rounded-md bg-white px-3 py-2 text-zinc-700 ring-1 ring-zinc-200">共 {{ profiles.length }} 条，启用 {{ enabledCount }} 条</span>
+          <button @click="exportDb" class="rounded-md border border-zinc-300 bg-white px-3 py-2 font-medium text-zinc-700 hover:bg-zinc-50">备份</button>
+          <button @click="openImportPicker" class="rounded-md border border-zinc-300 bg-white px-3 py-2 font-medium text-zinc-700 hover:bg-zinc-50">恢复</button>
           <button @click="lock" class="rounded-md border border-zinc-300 bg-white px-3 py-2 font-medium text-zinc-700 hover:bg-zinc-50">重新验证</button>
+          <input ref="importFileInput" type="file" accept="application/json,.json" class="hidden" @change="importDb">
         </div>
       </section>
 
@@ -67,10 +70,13 @@
         <section class="rounded-lg bg-white p-4 shadow-sm ring-1 ring-zinc-200">
           <div class="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
             <div>
-              <h2 class="text-base font-semibold text-zinc-950">Reality 一键安装</h2>
+              <h2 class="text-base font-semibold text-zinc-950">{{ installModeLabel }} 一键安装</h2>
               <p class="mt-1 text-sm text-zinc-600">命令已自动填入当前 Web 地址和访问令牌，节点名称默认使用服务器 hostname，安装完成后自动推送到面板。</p>
             </div>
-            <button @click="copyInstallCommand" class="min-h-10 rounded-md bg-zinc-950 px-5 text-sm font-semibold text-white hover:bg-zinc-800">复制命令</button>
+            <div class="flex flex-wrap gap-2">
+              <button @click="openInstallSettings" class="min-h-10 rounded-md border border-zinc-300 bg-white px-4 text-sm font-semibold text-zinc-700 hover:bg-zinc-50">高级设置</button>
+              <button @click="copyInstallCommand" class="min-h-10 rounded-md bg-zinc-950 px-5 text-sm font-semibold text-white hover:bg-zinc-800">复制命令</button>
+            </div>
           </div>
           <pre class="mt-3 overflow-auto rounded-md bg-zinc-950 p-3 text-sm leading-6 text-zinc-100 whitespace-nowrap"><code>{{ installCommand }}</code></pre>
         </section>
@@ -78,12 +84,7 @@
         <section class="overflow-hidden rounded-lg bg-white shadow-sm ring-1 ring-zinc-200">
           <div class="flex flex-wrap items-center justify-between gap-3 border-b border-zinc-200 px-4 py-3">
             <h2 class="text-base font-semibold text-zinc-950">订阅列表</h2>
-            <div class="flex flex-wrap items-center gap-2">
-              <span v-if="loading" class="text-sm text-zinc-500">加载中...</span>
-              <button @click="exportDb" class="rounded-md border border-zinc-300 bg-white px-3 py-2 text-sm font-medium text-zinc-700 hover:bg-zinc-50">备份</button>
-              <button @click="openImportPicker" class="rounded-md border border-zinc-300 bg-white px-3 py-2 text-sm font-medium text-zinc-700 hover:bg-zinc-50">恢复</button>
-              <input ref="importFileInput" type="file" accept="application/json,.json" class="hidden" @change="importDb">
-            </div>
+            <span v-if="loading" class="text-sm text-zinc-500">加载中...</span>
           </div>
 
           <div class="overflow-x-auto">
@@ -127,6 +128,48 @@
           </div>
         </section>
       </template>
+
+      <div v-if="installSettingsOpen" class="fixed inset-0 z-30 flex items-center justify-center bg-black/40 px-4 py-6">
+        <section class="max-h-[88vh] w-full max-w-2xl overflow-hidden rounded-lg bg-white shadow-xl ring-1 ring-zinc-200">
+          <div class="flex items-center justify-between border-b border-zinc-200 px-5 py-4">
+            <div>
+              <h2 class="text-lg font-semibold text-zinc-950">安装高级设置</h2>
+              <p class="mt-1 text-sm text-zinc-500">选择 Reality 或 WSS。WSS 会自动配置 Cloudflare DNS、TLS 证书、Nginx 反代和 VMess WebSocket。</p>
+            </div>
+            <button @click="closeInstallSettings" class="rounded-md border border-zinc-300 bg-white px-3 py-2 text-sm font-medium text-zinc-700 hover:bg-zinc-50">关闭</button>
+          </div>
+
+          <div class="space-y-4 px-5 py-4">
+            <div class="grid grid-cols-2 rounded-md bg-zinc-100 p-1">
+              <button @click="installDraft.mode = 'reality'" :class="installDraft.mode === 'reality' ? 'bg-white text-zinc-950 shadow-sm' : 'text-zinc-600'" class="rounded px-3 py-2 text-sm font-medium">Reality</button>
+              <button @click="installDraft.mode = 'wss'" :class="installDraft.mode === 'wss' ? 'bg-white text-zinc-950 shadow-sm' : 'text-zinc-600'" class="rounded px-3 py-2 text-sm font-medium">WSS</button>
+            </div>
+
+            <div v-if="installDraft.mode === 'reality'" class="grid gap-3 sm:grid-cols-2">
+              <input v-model="installDraft.realityPort" class="min-h-10 rounded-md border border-zinc-300 px-3 text-sm outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-100" placeholder="Reality 端口，默认 443">
+              <input v-model="installDraft.realitySni" class="min-h-10 rounded-md border border-zinc-300 px-3 text-sm outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-100" placeholder="Reality SNI，默认 www.amazon.com">
+            </div>
+
+            <div v-else class="space-y-3">
+              <input v-model="installDraft.cfToken" type="password" class="min-h-10 w-full rounded-md border border-zinc-300 px-3 text-sm outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-100" placeholder="Cloudflare API Token">
+              <div class="grid gap-3 sm:grid-cols-2">
+                <input v-model="installDraft.rootDomain" class="min-h-10 rounded-md border border-zinc-300 px-3 text-sm outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-100" placeholder="主域名，例如 example.com">
+                <input v-model="installDraft.wssDomain" class="min-h-10 rounded-md border border-zinc-300 px-3 text-sm outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-100" placeholder="WSS 域名，留空使用 IP.主域名">
+              </div>
+              <div class="grid gap-3 sm:grid-cols-2">
+                <input v-model="installDraft.wssPort" class="min-h-10 rounded-md border border-zinc-300 px-3 text-sm outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-100" placeholder="外部 TLS 端口，默认 443">
+                <input v-model="installDraft.wssPath" class="min-h-10 rounded-md border border-zinc-300 px-3 text-sm outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-100" placeholder="WS 路径，留空随机生成">
+              </div>
+              <p class="text-xs leading-5 text-zinc-500">Token 需要 Zone 读取、DNS 记录编辑权限。脚本会创建 A 记录并开启 Cloudflare 代理。</p>
+            </div>
+          </div>
+
+          <div class="flex flex-col gap-2 border-t border-zinc-200 px-5 py-4 sm:flex-row sm:justify-end">
+            <button @click="closeInstallSettings" class="rounded-md border border-zinc-300 bg-white px-4 py-2 text-sm font-medium text-zinc-700 hover:bg-zinc-50">取消</button>
+            <button @click="saveInstallSettings" class="rounded-md bg-zinc-950 px-4 py-2 text-sm font-semibold text-white hover:bg-zinc-800">保存设置</button>
+          </div>
+        </section>
+      </div>
 
       <div v-if="advancedRulesOpen" class="fixed inset-0 z-30 flex items-center justify-center bg-black/40 px-4 py-6">
         <section class="max-h-[88vh] w-full max-w-3xl overflow-hidden rounded-lg bg-white shadow-xl ring-1 ring-zinc-200">

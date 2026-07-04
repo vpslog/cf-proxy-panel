@@ -2,6 +2,18 @@ const { createApp, ref, computed, onMounted } = Vue;
 
 const PROJECT_REPO_URL = 'https://github.com/vpslog/cf-proxy-panel';
 const INSTALLER_URL = 'https://raw.githubusercontent.com/vpslog/cf-proxy-panel/main/install.sh';
+const INSTALL_SETTINGS_KEY = 'cf_proxy_panel_install_settings';
+
+const DEFAULT_INSTALL_SETTINGS = {
+  mode: 'reality',
+  realityPort: '443',
+  realitySni: 'www.amazon.com',
+  cfToken: '',
+  rootDomain: '',
+  wssDomain: '',
+  wssPort: '443',
+  wssPath: ''
+};
 
 const app = createApp({
   template: '#app-template',
@@ -15,6 +27,9 @@ const app = createApp({
     const settings = ref({ remoteRuleUrl: '', extraRuleGroups: [] });
     const editingRuleGroups = ref([]);
     const advancedRulesOpen = ref(false);
+    const installSettings = ref(loadInstallSettings());
+    const installDraft = ref({ ...installSettings.value });
+    const installSettingsOpen = ref(false);
     const loading = ref(false);
     const savingId = ref('');
     const notice = ref('');
@@ -24,12 +39,51 @@ const app = createApp({
     const enabledCount = computed(() => profiles.value.filter((profile) => profile.enabled).length);
     const canAdd = computed(() => draftAlias.value.trim() && draftUrl.value.trim());
     const extraRuleCount = computed(() => normalizeRuleGroups(settings.value.extraRuleGroups).length);
+    const installModeLabel = computed(() => installSettings.value.mode === 'wss' ? 'WSS' : 'Reality');
     const installCommand = computed(() => {
-      const webUrl = shellQuote(window.location.origin);
-      const token = shellQuote(getAuthToken());
+      const env = {
+        SUBCONVERT_NON_INTERACTIVE: '1',
+        INSTALL_MODE: installSettings.value.mode || 'reality',
+        SUBCONVERT_WEB_URL: window.location.origin,
+        SUBCONVERT_TOKEN: getAuthToken(),
+        SUBCONVERT_ALIAS: '$(hostname)'
+      };
 
-      return `curl -fsSL ${INSTALLER_URL} -o /tmp/cf-proxy-panel-install.sh && sudo env SUBCONVERT_NON_INTERACTIVE=1 SUBCONVERT_WEB_URL=${webUrl} SUBCONVERT_TOKEN=${token} SUBCONVERT_ALIAS="$(hostname)" bash /tmp/cf-proxy-panel-install.sh`;
+      if (env.INSTALL_MODE === 'wss') {
+        Object.assign(env, {
+          CF_API_TOKEN: installSettings.value.cfToken,
+          WSS_ROOT_DOMAIN: installSettings.value.rootDomain,
+          WSS_DOMAIN: installSettings.value.wssDomain,
+          WSS_PORT: installSettings.value.wssPort || '443',
+          WSS_PATH: installSettings.value.wssPath
+        });
+      } else {
+        Object.assign(env, {
+          REALITY_PORT: installSettings.value.realityPort || '443',
+          REALITY_SNI: installSettings.value.realitySni || 'www.amazon.com'
+        });
+      }
+
+      const envText = Object.entries(env)
+        .filter(([, value]) => String(value || '').trim())
+        .map(([key, value]) => key === 'SUBCONVERT_ALIAS' && value === '$(hostname)'
+          ? 'SUBCONVERT_ALIAS="$(hostname)"'
+          : `${key}=${shellQuote(value)}`)
+        .join(' ');
+
+      return `curl -fsSL ${INSTALLER_URL} -o /tmp/cf-proxy-panel-install.sh && sudo env ${envText} bash /tmp/cf-proxy-panel-install.sh`;
     });
+
+    function loadInstallSettings() {
+      try {
+        return {
+          ...DEFAULT_INSTALL_SETTINGS,
+          ...JSON.parse(localStorage.getItem(INSTALL_SETTINGS_KEY) || '{}')
+        };
+      } catch {
+        return { ...DEFAULT_INSTALL_SETTINGS };
+      }
+    }
 
     function normalizeRuleGroups(groups = []) {
       return Array.isArray(groups)
@@ -189,6 +243,25 @@ const app = createApp({
       }
     }
 
+    function openInstallSettings() {
+      installDraft.value = { ...installSettings.value };
+      installSettingsOpen.value = true;
+    }
+
+    function closeInstallSettings() {
+      installSettingsOpen.value = false;
+    }
+
+    function saveInstallSettings() {
+      installSettings.value = {
+        ...DEFAULT_INSTALL_SETTINGS,
+        ...installDraft.value
+      };
+      localStorage.setItem(INSTALL_SETTINGS_KEY, JSON.stringify(installSettings.value));
+      installSettingsOpen.value = false;
+      flash('安装设置已保存。');
+    }
+
     function openAdvancedRules() {
       editingRuleGroups.value = normalizeRuleGroups(settings.value.extraRuleGroups).map((group) => ({ ...group }));
       if (editingRuleGroups.value.length === 0) {
@@ -291,6 +364,13 @@ const app = createApp({
     }
 
     function copyInstallCommand() {
+      if (installSettings.value.mode === 'wss') {
+        if (!installSettings.value.cfToken.trim() || !installSettings.value.rootDomain.trim()) {
+          flash('请先在安装高级设置中填写 Cloudflare Token 和主域名。', true);
+          return;
+        }
+      }
+
       return copyText(installCommand.value, '一键安装命令已复制。');
     }
 
@@ -310,6 +390,8 @@ const app = createApp({
       settings,
       editingRuleGroups,
       advancedRulesOpen,
+      installSettingsOpen,
+      installDraft,
       loading,
       savingId,
       notice,
@@ -318,6 +400,7 @@ const app = createApp({
       enabledCount,
       canAdd,
       extraRuleCount,
+      installModeLabel,
       installCommand,
       projectRepoUrl: PROJECT_REPO_URL,
       unlock,
@@ -325,6 +408,9 @@ const app = createApp({
       addNewProfile,
       saveProfile,
       saveSystemSettings,
+      openInstallSettings,
+      closeInstallSettings,
+      saveInstallSettings,
       openAdvancedRules,
       closeAdvancedRules,
       addExtraRuleGroup,
