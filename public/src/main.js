@@ -9,6 +9,8 @@ const DEFAULT_INSTALL_SETTINGS = {
   realityPort: '443',
   realitySni: 'www.amazon.com',
   cfToken: '',
+  cfZoneId: '',
+  cfAccountId: '',
   rootDomain: '',
   wssDomain: '',
   wssPort: '443',
@@ -52,6 +54,8 @@ const app = createApp({
       if (env.INSTALL_MODE === 'wss') {
         Object.assign(env, {
           CF_API_TOKEN: installSettings.value.cfToken,
+          CF_ZONE_ID: installSettings.value.cfZoneId,
+          CF_ACCOUNT_ID: installSettings.value.cfAccountId,
           WSS_ROOT_DOMAIN: installSettings.value.rootDomain,
           WSS_DOMAIN: installSettings.value.wssDomain,
           WSS_PORT: installSettings.value.wssPort || '443',

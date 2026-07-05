@@ -157,10 +157,14 @@
                 <input v-model="installDraft.wssDomain" class="min-h-10 rounded-md border border-zinc-300 px-3 text-sm outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-100" placeholder="WSS 域名，留空使用 IP.主域名">
               </div>
               <div class="grid gap-3 sm:grid-cols-2">
+                <input v-model="installDraft.cfZoneId" class="min-h-10 rounded-md border border-zinc-300 px-3 text-sm outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-100" placeholder="Cloudflare Zone ID，推荐填写">
+                <input v-model="installDraft.cfAccountId" class="min-h-10 rounded-md border border-zinc-300 px-3 text-sm outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-100" placeholder="Account ID，可选">
+              </div>
+              <div class="grid gap-3 sm:grid-cols-2">
                 <input v-model="installDraft.wssPort" class="min-h-10 rounded-md border border-zinc-300 px-3 text-sm outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-100" placeholder="外部 TLS 端口，默认 443">
                 <input v-model="installDraft.wssPath" class="min-h-10 rounded-md border border-zinc-300 px-3 text-sm outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-100" placeholder="WS 路径，留空随机生成">
               </div>
-              <p class="text-xs leading-5 text-zinc-500">Token 需要 Zone 读取、DNS 记录编辑权限。脚本会创建 A 记录并开启 Cloudflare 代理。</p>
+              <p class="text-xs leading-5 text-zinc-500">用户级 DNS Token 推荐同时填写 Zone ID。若 Token 没有 DNS Read，脚本会跳过查询并直接尝试创建 A 记录。</p>
             </div>
           </div>
 

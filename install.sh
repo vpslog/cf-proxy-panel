@@ -29,6 +29,8 @@ WSS_PORT="${WSS_PORT:-443}"
 WSS_LOCAL_PORT="${WSS_LOCAL_PORT:-8080}"
 WSS_PATH="${WSS_PATH:-}"
 CF_API_TOKEN="${CF_API_TOKEN:-}"
+CF_ZONE_ID="${CF_ZONE_ID:-}"
+CF_ACCOUNT_ID="${CF_ACCOUNT_ID:-}"
 
 red() { printf '\033[31m%s\033[0m\n' "$*"; }
 green() { printf '\033[32m%s\033[0m\n' "$*"; }
@@ -295,17 +297,25 @@ ensure_cloudflare_dns() {
   local zone_name="${WSS_ROOT_DOMAIN:-$WSS_DOMAIN}"
   local zone_response zone_id record_response record_id payload
 
-  zone_response="$(cloudflare_api GET "/zones?name=${zone_name}")" || die "Cloudflare Zone 查询失败。"
-  zone_id="$(printf '%s' "$zone_response" | extract_json_value id)"
-  [[ -n "$zone_id" ]] || die "未找到 Cloudflare Zone：${zone_name}"
+  if [[ -n "$CF_ZONE_ID" ]]; then
+    zone_id="$CF_ZONE_ID"
+    info "使用已提供的 Cloudflare Zone ID：${zone_id}"
+  else
+    zone_response="$(cloudflare_api GET "/zones?name=${zone_name}")" || die "Cloudflare Zone 查询失败。请在高级设置中填写 Zone ID，或给 Token 增加 Zone Read 权限。"
+    zone_id="$(printf '%s' "$zone_response" | extract_json_value id)"
+    [[ -n "$zone_id" ]] || die "未找到 Cloudflare Zone：${zone_name}"
+  fi
 
-  record_response="$(cloudflare_api GET "/zones/${zone_id}/dns_records?type=A&name=${WSS_DOMAIN}")" || die "Cloudflare DNS 查询失败。"
+  record_response="$(cloudflare_api GET "/zones/${zone_id}/dns_records?type=A&name=${WSS_DOMAIN}" || true)"
   record_id="$(printf '%s' "$record_response" | extract_json_value id || true)"
   payload="$(printf '{"type":"A","name":"%s","content":"%s","ttl":1,"proxied":true}' "$(json_escape "$WSS_DOMAIN")" "$(json_escape "$SERVER_IP")")"
 
   if [[ -n "$record_id" ]]; then
     cloudflare_api PUT "/zones/${zone_id}/dns_records/${record_id}" "$payload" >/dev/null || die "Cloudflare DNS 更新失败。"
   else
+    if [[ -z "$record_response" ]]; then
+      yellow "Cloudflare DNS 记录查询失败，尝试直接创建记录。若记录已存在，请给 Token 增加 DNS Read 权限或手动删除旧记录。"
+    fi
     cloudflare_api POST "/zones/${zone_id}/dns_records" "$payload" >/dev/null || die "Cloudflare DNS 创建失败。"
   fi
 
@@ -317,6 +327,7 @@ issue_wss_cert() {
   curl -fsSL https://get.acme.sh | sh -s email=admin@"${WSS_ROOT_DOMAIN:-$WSS_DOMAIN}" >/dev/null
   export CF_Token="$CF_API_TOKEN"
   export CF_Zone_ID="$CF_ZONE_ID"
+  export CF_Account_ID="$CF_ACCOUNT_ID"
   mkdir -p "/etc/letsencrypt/live/${WSS_DOMAIN}"
   ~/.acme.sh/acme.sh --issue -d "$WSS_DOMAIN" --dns dns_cf --keylength ec-256 --force
   ~/.acme.sh/acme.sh --install-cert -d "$WSS_DOMAIN" --ecc \
