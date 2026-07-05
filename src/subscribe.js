@@ -63,7 +63,7 @@ export async function handleSubscribe(request, env) {
       return textResponse(buildV2RaySubscription(configs), {
         headers: {
           'Content-Type': 'text/plain; charset=utf-8',
-          'Content-Disposition': 'attachment; filename="subscription-v2ray.txt"'
+          'Content-Disposition': 'attachment; filename="cf-proxy-panel-v2ray.txt"'
         }
       }, corsHeaders);
     }
@@ -80,7 +80,7 @@ export async function handleSubscribe(request, env) {
     return textResponse(stringifyYaml(buildClashConfig(allProxies, routing)), {
       headers: {
         'Content-Type': 'text/yaml; charset=utf-8',
-        'Content-Disposition': 'attachment; filename="subscription-clash.yaml"'
+        'Content-Disposition': 'attachment; filename="cf-proxy-panel.yaml"'
       }
     }, corsHeaders);
   } catch (error) {
